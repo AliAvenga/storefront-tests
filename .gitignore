@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+reports/
+.qe-active-scope.json
+.qe-run-state.json
+.audit/
+.env
