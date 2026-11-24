@@ -21,8 +21,9 @@ class Reply:
 
 
 class ShopClient:
-    def __init__(self, base_url: str, inventory_url: str, timeout: float = 10) -> None:
-        self.base_url, self.inventory_url, self.timeout = base_url, inventory_url, timeout
+    def __init__(self, base_url: str, inventory_url: str, customers_url: str, timeout: float = 10) -> None:
+        self.base_url, self.inventory_url, self.customers_url = base_url, inventory_url, customers_url
+        self.timeout = timeout
         self.opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(CookieJar()))
 
     def _send(self, url: str, method: str = "GET", data: bytes | None = None,
@@ -48,12 +49,20 @@ class ShopClient:
         headers = {"Content-Type": "application/json"} if data else {}
         return self._send(self.inventory_url + path, method, data, headers)
 
+    # customers service API
+    def customers(self, path: str, method: str = "GET", body: Any = None) -> Reply:
+        data = json.dumps(body).encode() if body is not None else None
+        headers = {"Content-Type": "application/json"} if data else {}
+        return self._send(self.customers_url + path, method, data, headers)
+
     def is_up(self) -> bool:
         try:
-            return self.page("/health").status == 200 and self.inventory("/health").status == 200
+            return all(reply.status == 200 for reply in (
+                self.page("/health"), self.inventory("/health"), self.customers("/health")))
         except OSError:
             return False
 
     def reset(self) -> None:
         self._send(self.base_url + "/test/reset", "POST", b"")
         self.inventory("/api/inventory/test/reset", "POST")
+        self.customers("/api/customers/test/reset", "POST")
